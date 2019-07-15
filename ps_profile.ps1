@@ -459,7 +459,7 @@ Write-Output ("vctools {0}" -f $Env:VCToolsVersion)
 Write-Output ""
 
 # start the gpg agent so git can sign commits
-gpg-agent --daemon 2>&1 | out-null
+gpgconf --launch gpg-agent
 
 
 
