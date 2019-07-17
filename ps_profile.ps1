@@ -369,13 +369,12 @@ function print_pwd {
 }
 
 function Format-FileSize() {
-	param ([int]$size)
-	if     ($size -gt 1TB) {[string]::Format("{0:0.0}T", $size / 1TB)}
-	elseif ($size -gt 1GB) {[string]::Format("{0:0.0}G", $size / 1GB)}
-	elseif ($size -gt 1MB) {[string]::Format("{0:0.0}M", $size / 1MB)}
-	elseif ($size -gt 1KB) {[string]::Format("{0:0.0}K", $size / 1KB)}
-	elseif ($size -gt 0)   {[string]::Format("{0:0}", $size)}
-	else                   {""}
+	param ([long]$size)
+	if     ($size -gt 1099511627776)    {return [string]::Format("{0:0.0}T", $size / 1099511627776)}
+	elseif ($size -gt 1073741824)       {return [string]::Format("{0:0.0}G", $size / 1073741824)}
+	elseif ($size -gt 1048576)          {return [string]::Format("{0:0.0}M", $size / 1048576)}
+	elseif ($size -gt 1024)             {return [string]::Format("{0:0.0}K", $size / 1024)}
+	else                                {return [string]::Format("{0}", $size)}
 }
 
 
@@ -386,7 +385,7 @@ function bash_ls_wrapper {
 		[switch] $a,
 
 		[Parameter(ValueFromRemainingArguments=$true)]
-        [string[]]$dirs
+		[string[]]$dirs
 	)
 
 	if($dirs -eq $null) {
@@ -395,10 +394,12 @@ function bash_ls_wrapper {
 
 	$arguments = @{
 		Recurse = $R
-		Exclude = if($a) { $null } else { ".*" }
 	}
 
 	$things = Get-ChildItem @arguments $dirs
+	if(-not $a) {
+		$things = $things | Where-Object -FilterScript {$_.Name -notmatch '^\.'}
+	}
 
 	if(-not $l) {
 		return $things | Format-Wide -AutoSize -GroupBy $(if($R){'Directory'}else{'None'}) -Property 'Name'
@@ -411,7 +412,7 @@ function bash_ls_wrapper {
 			Width       = 8
 		} ,@{
 			Name        = 'Length'
-			Expression  = { "{0,7:N0}" -f (Format-FileSize $_.Length) }
+			Expression  = { "{0,7:N0}" -f (Format-FileSize($_.Length)) }
 			Width       = 9
 		}, @{
 			Name        = 'LastWriteDate'
@@ -438,7 +439,7 @@ function sudo {
 		[switch] $keep=$false,
 
 		[Parameter(Mandatory=$true, ValueFromRemainingArguments=$true)]
-        [string[]]$Passthrough
+		[string[]]$Passthrough
 	)
 
 	Switch-User -Credential $null -KeepOpen $keep -CommandToRun $Passthrough
@@ -448,6 +449,9 @@ Set-Alias -name which -value Get-Command
 Set-Alias -name pwd -value print_pwd
 Set-Alias -name ls -value list_files
 Set-Alias -name la -value list_files_attr
+
+Remove-Alias md
+Remove-Alias chdir
 
 $Env:Path += ";C:\Program Files (x86)\GnuPG\bin;C:\Program Files\Git\bin;"
 
